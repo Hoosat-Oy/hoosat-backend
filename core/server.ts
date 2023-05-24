@@ -97,33 +97,89 @@ export const createRouter = (): HoosatRouter => {
   return { routes, Route, UseRouter, Get, Put, Post, Delete, Middleware };
 };
 
+/**
+ * Parses an IncomingMessage object and creates a HoosatRequest object.
+ * @param message - The original IncomingMessage object.
+ * @returns A HoosatRequest object.
+ */
 const parseIncomingMessage = (message: IncomingMessage): HoosatRequest => {
+  /**
+   * Represents a parsed IncomingMessage object with additional properties.
+   */
   const request: HoosatRequest = {
+    /**
+     * The original IncomingMessage object.
+     */
     incomingMessage: message,
+    /**
+     * The URL of the request.
+     */
     url: message.url || "",
+    /**
+     * The headers of the request.
+     */
     headers: message.headers,
+    /**
+     * The parsed parameters of the request.
+     */
     params: {},
-  }
+  };
   let data = '';
+  /**
+   * Event handler for data chunks in the message.
+   * Appends the received chunks to the `data` variable.
+   * @param chunk - The data chunk received.
+   */
   message.on('data', (chunk) => {
     data += chunk;
   });
+  /**
+   * Event handler for the end of the message.
+   * Parses the request body if it is in JSON format.
+   * @returns void
+   */
   message.on('end', () => {
-    // Parse the request body if it is in JSON format
     try {
+      // Parse the request body if it is in JSON format
       request.body = JSON.parse(data);
     } catch (error) {
       request.body = data;
     }
   });
   return request;
-}
+};
 
+
+/**
+ * Creates a HoosatResponse object based on a ServerResponse.
+ * @param response - The original ServerResponse object.
+ * @returns A HoosatResponse object.
+ */
 const createServerResponse = (response: ServerResponse): HoosatResponse => {
+  /**
+   * Represents a modified ServerResponse object with extended functionality.
+   */
   const serverResponse: HoosatResponse = {
+    /**
+     * The original ServerResponse object.
+     */
     serverResponse: response,
+
+    /**
+     * The status code to be sent in the response.
+     */
     statusCode: response.statusCode || 200,
+
+    /**
+     * The headers to be sent in the response.
+     */
     headers: response.getHeaders(),
+
+    /**
+     * Sends a response with the provided body.
+     * @param body - The body of the response (string or object).
+     * @returns The HoosatResponse object.
+     */
     send: (body: string | object) => {
       if (typeof body === 'object') {
         serverResponse.setHeader('Content-Type', 'application/json');
@@ -134,14 +190,30 @@ const createServerResponse = (response: ServerResponse): HoosatResponse => {
       }
       return serverResponse;
     },
+    /**
+     * Sends a JSON response.
+     * @param body - The JSON body of the response.
+     * @returns The HoosatResponse object.
+     */
     json: (body: object) => {
       serverResponse.send(body);
       return serverResponse;
     },
+    /**
+     * Sets a response header.
+     * @param name - The name of the header.
+     * @param value - The value of the header.
+     * @returns The HoosatResponse object.
+     */
     setHeader: (name: string, value: string | string[]) => {
       response.setHeader(name, value);
       return serverResponse;
     },
+    /**
+     * Sets the status code of the response.
+     * @param status - The status code.
+     * @returns The HoosatResponse object.
+     */
     status: (status) => {
       serverResponse.statusCode = status;
       return serverResponse;
@@ -150,28 +222,44 @@ const createServerResponse = (response: ServerResponse): HoosatResponse => {
   return serverResponse;
 };
 
+
 /**
  * Handles incoming requests by executing middlewares and routing to the appropriate handler.
- *
- * @param {Router} router - The router instance used for routing.
+ * @param {HoosatRouter} router - The router instance used for routing.
  * @param {IncomingMessage} req - The incoming request object.
  * @param {ServerResponse} res - The server response object.
  * @returns {void}
  */
 export const handleRequest = (router: HoosatRouter, req: IncomingMessage, res: ServerResponse): void => {
+  /**
+   * Parse the incoming request message.
+   */
   const request = parseIncomingMessage(req);
+  /**
+   * Create the server response object.
+   */
   const response = createServerResponse(res);
+  /**
+   * Get the routes from the router.
+   */
   const { routes } = router;
+  /**
+   * Get the path and method from the request.
+   */
   const path = req.url || '';
   const method = req.method || '';
-  // Find executable middlewares
+  /**
+   * Find executable middlewares.
+   */
   const middlewares: HoosatRequestHandler[] = [];
   for (const route of routes) {
     if (route.path === 'hoosat-middleware') {
       middlewares.push(route.handler);
     }
   }
-  // Execute middlewares and then the specified route.
+  /**
+   * Execute middlewares and then the specified route.
+   */
   let currentMiddleware = 0;
   const executeNext = (currentReq: HoosatRequest, currentRes: HoosatResponse): void => {
     if (currentMiddleware < middlewares.length) {
@@ -230,7 +318,6 @@ export const handleRequest = (router: HoosatRouter, req: IncomingMessage, res: S
   // Start executing middlewares and routes
   executeNext(request, response);
 };
-
 
 /**
  * Creates a server using the specified router and options.
