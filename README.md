@@ -1,4 +1,4 @@
-# Node HTTP/HTTP server.
+# Hoosat Backend
 
-This is Hoosat Template Server code repository, basic example how to use 
+This is Hoosat backend that has React SSR functionality as an example and core server functionality as submodule. 
 
